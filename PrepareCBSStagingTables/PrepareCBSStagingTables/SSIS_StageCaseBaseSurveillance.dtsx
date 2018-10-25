@@ -1,0 +1,958 @@
+<?xml version="1.0"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package"
+  DTS:CreationDate="7/9/2018 8:25:34 AM"
+  DTS:CreationName="SSIS.Package.3"
+  DTS:CreatorComputerName="NASCOPDWH"
+  DTS:CreatorName="NASCOP\mgitonga"
+  DTS:DTSID="{91A63A39-A2FD-46D1-9515-D8CFD8DC324E}"
+  DTS:ExecutableType="SSIS.Package.3"
+  DTS:LastModifiedProductVersion="11.0.2100.60"
+  DTS:LocaleID="1033"
+  DTS:ObjectName="SSIS_StageCaseBaseSurveillance"
+  DTS:PackageType="5"
+  DTS:VersionBuild="5"
+  DTS:VersionGUID="{71B86134-F415-441C-97BE-56AD242A1B18}">
+  <DTS:Property
+    DTS:Name="PackageFormatVersion">6</DTS:Property>
+  <DTS:ConnectionManagers>
+    <DTS:ConnectionManager
+      DTS:refId="Package.ConnectionManagers[LocalHost.All_Staging_2016_2]"
+      DTS:CreationName="OLEDB"
+      DTS:DTSID="{AD7511B3-1A0E-40CB-B375-48A991BC1876}"
+      DTS:ObjectName="LocalHost.All_Staging_2016_2">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:ConnectionString="Data Source=.;Initial Catalog=All_Staging_2016_2;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;" />
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+    <DTS:ConnectionManager
+      DTS:refId="Package.ConnectionManagers[LocalHost.CBS_Staging]"
+      DTS:CreationName="OLEDB"
+      DTS:DTSID="{B232E511-044E-4947-BA14-164859A6DE42}"
+      DTS:ObjectName="LocalHost.CBS_Staging">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:ConnectionString="Data Source=.;Initial Catalog=CBS_Staging;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;" />
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+  <DTS:Variables />
+  <DTS:Executables>
+    <DTS:Executable
+      DTS:refId="Package\De-Duplicate Patient Records"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{A59CE293-64CD-47B4-BE12-CB76FA4E8F23}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="De-Duplicate Patient Records"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="--- DE-DUPLICATE &#xA;DELETE M &#xA;FROM [cbsPatientProfile] M&#xA;INNER JOIN &#xA;(&#xA;SELECT &#xA;ROW_NUMBER () OVER (PARTITION BY Sex, BirthDate,CCCNumber,ReportingFacilityCode ORDER BY ReportingFacilityCode,CCCNumber, sex, BirthDate) AS RowId ,&#xA; Sex, BirthDate,CCCNumber,ReportingFacilityCode, PatientUID&#xA; FROM [cbsPatientProfile]) A &#xA; ON A.CCCNumber= M.CCCNumber AND A.BirthDate=M.BirthDate AND A.Sex=M.Sex &#xA; AND A.ReportingFacilityCode=M.ReportingFacilityCode anD A.PatientUID=M.PatientUID&#xA; WHERE  A.RowId &gt; 1&#xA;&#xA; Go &#xA;&#xA; PRINT 'Patient Mapping Table...'&#xA;GO&#xA;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Facility Clean Up - Defensive"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{35A16299-C02C-4686-BB24-B73810C81170}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Facility Clean Up - Defensive"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="PRINT 'Removing Facilities...'&#xA;GO&#xA;&#xA;&#xA;--Remove Facilities Not In Patient Profile &#xA;DELETE cbsReportingFacility WHERE [FacilityCode] NOT IN (SELECT [ReportingFacilityCode] FROM [dbo].[cbsPatientProfile] GROUP BY [ReportingFacilityCode])&#xA;&#xA;GO " xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Log EMR at Facility"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{2AAB3062-D3D7-4BE5-924D-41ACF7B3BBC0}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Log EMR at Facility"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="&#xA;  UPDATE &#xA;  M SET M.FacilityEMR= P.Emr&#xA;  FROM [CBS_Staging].[dbo].[cbsReportingFacility] M&#xA;  INNER JOIN &#xA;  (select DISTINCT SiteCode, EMR FROM All_Staging_2016_2.dbo.stg_Patients) P&#xA;  ON P.SiteCode = M.FacilityCode&#xA;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Log Refresh Date"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{2162B995-ED8D-4FB2-A961-B203766281D6}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Log Refresh Date"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="INSERT  [CBS_Staging].[dbo].[cbsRefreshTable] (DateOfRefresh) VALUES (GETDATE())" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\MINE-  Encounters"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{E2522A20-A7B6-4AF2-9977-D4B342E9BFD0}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="MINE-  Encounters"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="3">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="INSERT  [dbo].[cbsPatientEncounters] (PatientUID, EncounterDate, EncounterType, ReportingFacilityCode)&#xA;SELECT DISTINCT T.PatientUID,V.VisitDate,ISNULL(v.VisitType,'Not Specified'), v.SiteCode FROM All_Staging_2016_2.dbo.stg_PatientVisits V&#xA;INNER JOIN MPI.[dbo].[PatientMatchingTable] t ON V.PatientID = t.CCCNumber AND v.SiteCode=T.SiteCode &#xA;INNER JOIN [dbo].[cbsReportingFacility] f ON f.FacilityCode=v.SiteCode&#xA;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\MINE- ARV Events"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{11DBBD31-BE22-44FC-A60D-7133B8399560}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="MINE- ARV Events"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="1">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="&#xA;SELECT PatientId,Dispensedate,Drug,A.SiteCode, Num&#xA;,LAG(Drug) OVER (PARTITION BY PatientId, PatientPK, A.SiteCode, DRUG ORDER BY PatientId,num  ) AS  PrevDrug &#xA;,LAG(Dispensedate) OVER (PARTITION BY PatientId, PatientPK, A.SiteCode, Drug ORDER BY PatientId, NUM  ) AS  PrevDispenseDate&#xA;FROM &#xA;(&#xA;SELECT &#xA;ROW_NUMBER() OVER (PARTITION BY PatientId, PatientPK, SiteCode, Drug ORDER BY PatientId, PatientPK, SiteCode, Dispensedate) AS NUM , &#xA;PatientId, PatientPK, SiteCode, Drug,Dispensedate &#xA; FROM [All_Staging_2016_2].dbo.Stg_PatientPharmacy WHERE TreatmentType IN ('ARV', 'ART','PMTCT') &#xA; ) A &#xA;&#xA;INNER JOIN MPI.[dbo].[TempMatchingTable] t ON A.PatientID = t.CCCNumber AND A.SiteCode=T.SiteCode &#xA;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\MINE- CD4 % Events for Children"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{461CD2B1-E006-49EE-B2FD-2D44F0B92975}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="MINE- CD4 % Events for Children"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="4">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="&#xA;INSERT  [dbo].[cbsCD4PercentEvent](PatientUID, PatientCD4PercentDate, [PatientCD4Percent], ReportingFacilityCode)&#xA;select DISTINCT T.PatientUID,v.OrderedbyDate,CAST(v.TestResult AS Float),v.SiteCode from [All_Staging_2016_2].dbo.vw_GetCD4Percent v&#xA;INNER JOIN MPI.[dbo].[TempMatchingTable] t ON V.PatientID = t.CCCNumber AND v.SiteCode=T.SiteCode &#xA;INNER JOIN [dbo].[cbsReportingFacility] f ON f.FacilityCode=v.SiteCode&#xA;WHERE TestResult IS NOT NULL&#xA;Order by t.PatientUID, OrderedbyDate ASC" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\MINE- CD4 Count Events"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{C5561448-7746-4714-B055-6A5B775226E3}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="MINE- CD4 Count Events"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="INSERT  [dbo].[cbsCD4CountEvent] (PatientUID, PatientCD4CountDate, PatientCD4Count, ReportingFacilityCode)&#xA;select DISTINCT T.PatientUID,v.OrderedbyDate,CAST(v.TestResult AS Float),v.SiteCode from [All_Staging_2016_2].dbo.vw_GetCD4Counts v&#xA;INNER JOIN MPI.[dbo].[TempMatchingTable] t ON V.PatientID = t.CCCNumber AND v.SiteCode=T.SiteCode &#xA;INNER JOIN [dbo].[cbsReportingFacility] f ON f.FacilityCode=v.SiteCode&#xA;WHERE TestResult IS NOT NULL&#xA;Order by t.PatientUID, OrderedbyDate ASC&#xA;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\MINE-Viral Load Data"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{5B7DF645-CC20-406B-BFBF-558BF975C3D8}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="MINE-Viral Load Data"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="2">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="INSERT [dbo].[cbsViralLoadEvent] (PatientUID, VLDate, VLSampleResult, VLPatientResultSuppressed, ReportingFacilityCode)&#xA;SELECT DISTINCT  T.PatientUID,v.OrderedbyDate,TestResult,&#xA;CASE WHEN ISNUMERIC (TestResult)=1 THEN &#xA;&#x9; CASE WHEN CAST(TestResult AS FLOAT)&lt;=1000 THEN 'YES' ELSE 'NO' END &#xA;&#x9; ELSE 'YES'  END AS VLSuppressed, v.SiteCode  FROM [All_Staging_2016_2].dbo.[vw_GetViralLoads] V&#xA;&#xA;INNER JOIN MPI.[dbo].[TempMatchingTable] t ON V.PatientID = t.CCCNumber AND v.SiteCode=T.SiteCode &#xA;INNER JOIN [dbo].[cbsReportingFacility] f ON f.FacilityCode=v.SiteCode&#xA;WHERE TestResult IS NOT NULL AND TestResult &lt;&gt; 'Rejected'&#xA;Order by t.PatientUID, OrderedbyDate ASC" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\MPI - Patient Mapping"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{76D61C19-5C86-42FE-A7D8-130AC3484200}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="MPI - Patient Mapping"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource=" PRINT 'Patient Mapping Table...'&#xA;GO&#xA;&#xA; ---PatientUID Matching Table &#xA;&#xA;INSERT  [MPI].[dbo].[PatientMatchingTable] (PatientUID, SiteCode, CCCNumber)&#xA;SELECT P.PatientUID, P.ReportingFacilityCode, P.CCCNumber FROM [dbo].[cbsPatientProfile] P&#xA;LEFT JOIN [MPI].[dbo].[PatientMatchingTable] M ON M.SiteCode = P.ReportingFacilityCode AND M.CCCNumber=P.CCCNumber WHERE M.PatientUID IS NULL&#xA;&#xA; GO " xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Prepare Patient Profiles"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{F5A7884C-791E-487E-94C9-D4DC456568BF}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Prepare Patient Profiles"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="&#xA;PRINT 'Patient Profile...'&#xA;GO&#xA;INSERT INTO [dbo].[cbsPatientProfile]&#xA;           (&#xA;           [PatientUID]&#xA;           ,[Sex]&#xA;           ,[BirthDate]&#xA;           ,[ReportingFacilityCode]&#xA;           ,[MaritalStatus]&#xA;           ,[CCCNumber]&#xA;           ,[HEINumber]&#xA;           ,[MotherCCCNumber]&#xA;           ,[PopulationType]&#xA;           ,[HivDiagnosisDate]&#xA;           ,[HivDiagnosisType]&#xA;           ,[HivCareEntryDate]&#xA;           ,[EnrollmentWHO]&#xA;           ,[ModeOfTransmission]&#xA;           ,[ArtInitiationDate]&#xA;           ,[DeathDate]&#xA;           ,[ResidenceWard]&#xA;           ,[ResidenceVillage]&#xA;           ,[ResidenceCounty]&#xA;           ,[ResidenceSubCounty]&#xA;           ,[ARTHistory]&#xA;           ,[HivRecencyTestConducted]&#xA;           ,[HivRecent]&#xA;           ,[TbInfectedAtEnrollment]&#xA;           ,[PregnantAtEnrollment]&#xA;           ,[BreastFeedingAtEnrollment])&#xA;SELECT NEWID(), &#xA;p.Gender, &#xA;CAST(p.Dob as Date),&#xA;p.SiteCode,&#xA;MaritalStatus,p.PatientID AS CCCNumber, NULL AS HEINUmber,NULL AS MotherCCCNumber, &#xA;NULL AS PopulationType,DateConfirmedHIVPositive,&#xA;NULL AS HIVDiagnosisType, &#xA;RegistrationAtCCC as HIVCareEntryDate, &#xA;[eWHO] AS EnrollmentWHO,&#xA;NULL AS ModeOfTransmission, &#xA;ART.StartARTDate AS ARTInitiationDate, &#xA;S.ExitDate AS DeatDate, &#xA;NULL as ResidenceWard, &#xA;p.Village, &#xA;NULL AS ResidenceCounty, &#xA;P.District AS SubCounty, &#xA;NULL as ARTHistory,&#xA;NULL AS HiVRecencyTestConducted, &#xA;NULL AS HivRecent, &#xA;NULL AS TBInfectedAtEnrollment, &#xA;CASE WHEN P.Gender='F' THEN &#xA;&#x9; CASE &#xA;&#x9;&#x9;WHEN Preg.[PregnantAtEnrol]=1 THEN '1'ELSE '0' &#xA;&#x9; END &#xA;&#x9; ELSE NULL &#xA;END  AS PregnantAtEnrollment, &#xA;NULL AS BreastFeedingAtEnrollment&#xA; FROM [All_Staging_2016_2].[dbo].[stg_Patients] P&#xA; INNER JOIN [All_Staging_2016_2].[dbo].[stg_ARTPatients] ART&#xA; ON ART.PatientId=P.PatientId AND ART.SiteCode=P.SiteCode AND ART.PatientPK = P.PatientPK&#xA; LEFT JOIN [All_Staging_2016_2].[dbo].PatientBaselines PB &#xA; ON  PB.PatientId=P.PatientId AND PB.SiteCode=P.SiteCode AND PB.PatientPK = P.PatientPK&#xA; LEFT JOIN [All_Staging_2016_2].[dbo].[stg_PatientStatus]  S&#xA;  ON  S.PatientId=P.PatientId AND S.SiteCode=P.SiteCode AND S.PatientPK = P.PatientPK AND S.ExitReason='DIED'&#xA;  LEFT JOIN [All_Staging_2016_2].[dbo].[vw_PatientPregnancyStatusAtInitiation] Preg &#xA;  ON  Preg.PatientId=P.PatientId AND Preg.SiteCode=P.SiteCode AND Preg.PatientPK = P.PatientPK  &#xA;&#xA;  go " xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Prepare Reporting Facility Table"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{91DB66B2-DC29-40F4-9F00-93D4E90D66CD}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Prepare Reporting Facility Table"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="INSERT cbsReportingFacility(FacilityName, FacilityCounty, FacilitySubCounty, FacilityCode)&#xA;SELECT FacilityName,County, District,FacilityCode FROM Facilities&#xA;go &#xA;" xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\Truncate CBS_staging Tables"
+      DTS:CreationName="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:Description="Execute SQL Task"
+      DTS:DTSID="{28DB8B39-EF5A-40A4-B957-CB67D15DB522}"
+      DTS:ExecutableType="Microsoft.SqlServer.Dts.Tasks.ExecuteSQLTask.ExecuteSQLTask, Microsoft.SqlServer.SQLTask, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="Truncate CBS_staging Tables"
+      DTS:TaskContact="Execute SQL Task; Microsoft Corporation; SQL Server 2012; © 2007 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData>
+        <SQLTask:SqlTaskData
+          SQLTask:Connection="{B232E511-044E-4947-BA14-164859A6DE42}"
+          SQLTask:SqlStatementSource="----prepare tables &#xA;delete from dbo.cbsPatientEncounters&#xA;go&#xA;delete from [dbo].[cbsARTRegimenEvent]&#xA;go&#xA;delete from  [dbo].[cbsCD4CountEvent]&#xA;go&#xA;delete from [dbo].[cbsCD4PercentEvent]&#xA;go&#xA;delete from [dbo].[cbsViralLoadEvent]&#xA;go&#xA;delete  from  [dbo].[cbsReportingFacility]&#xA;go&#xA;delete from [dbo].[cbsPatientProfile]&#xA;go&#xA;&#xA;&#xA;Go " xmlns:SQLTask="www.microsoft.com/sqlserver/dts/tasks/sqltask" />
+      </DTS:ObjectData>
+    </DTS:Executable>
+  </DTS:Executables>
+  <DTS:PrecedenceConstraints>
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint]"
+      DTS:CreationName=""
+      DTS:DTSID="{41FC424F-0543-4407-B9E1-7E0CC081E698}"
+      DTS:From="Package\Prepare Reporting Facility Table"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint"
+      DTS:To="Package\Prepare Patient Profiles" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 1]"
+      DTS:CreationName=""
+      DTS:DTSID="{E5CCC46A-7A89-4971-AF6C-9A07A6154C2F}"
+      DTS:From="Package\Prepare Patient Profiles"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 1"
+      DTS:To="Package\Facility Clean Up - Defensive" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 10]"
+      DTS:CreationName=""
+      DTS:DTSID="{BCA9A777-0AE9-41BB-ACC2-0CA82699E3FD}"
+      DTS:From="Package\MINE- CD4 Count Events"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 10"
+      DTS:To="Package\Log EMR at Facility" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 11]"
+      DTS:CreationName=""
+      DTS:DTSID="{BFA0FE52-173D-4E11-ADAF-597F5B127221}"
+      DTS:From="Package\MINE- CD4 % Events for Children"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 11"
+      DTS:To="Package\Log EMR at Facility" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 12]"
+      DTS:CreationName=""
+      DTS:DTSID="{AEFDCCD8-0B2E-421C-BAAB-16C805104137}"
+      DTS:From="Package\MINE-Viral Load Data"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 12"
+      DTS:To="Package\Log EMR at Facility" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 13]"
+      DTS:CreationName=""
+      DTS:DTSID="{85E300FC-1929-4084-9253-0933887A9FB4}"
+      DTS:From="Package\MINE- ARV Events"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 13"
+      DTS:To="Package\Log EMR at Facility" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 14]"
+      DTS:CreationName=""
+      DTS:DTSID="{8B7D4D1F-EF9D-4588-9F5D-64220D7BB1DD}"
+      DTS:From="Package\MINE-  Encounters"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 14"
+      DTS:To="Package\Log EMR at Facility" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 15]"
+      DTS:CreationName=""
+      DTS:DTSID="{4DBBDC8D-E95D-4A49-80C4-C9E6F6353BE9}"
+      DTS:From="Package\Log EMR at Facility"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 15"
+      DTS:To="Package\Log Refresh Date" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 2]"
+      DTS:CreationName=""
+      DTS:DTSID="{1F986994-499D-438A-B9C0-687C06306853}"
+      DTS:From="Package\Facility Clean Up - Defensive"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 2"
+      DTS:To="Package\De-Duplicate Patient Records" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 3]"
+      DTS:CreationName=""
+      DTS:DTSID="{A867241E-3DA2-418C-BB44-A649189F7540}"
+      DTS:From="Package\De-Duplicate Patient Records"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 3"
+      DTS:To="Package\MPI - Patient Mapping" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 4]"
+      DTS:CreationName=""
+      DTS:DTSID="{BCE53B4E-F327-47A5-A428-4F5FFC90D04B}"
+      DTS:From="Package\MPI - Patient Mapping"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 4"
+      DTS:To="Package\MINE- CD4 Count Events" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 5]"
+      DTS:CreationName=""
+      DTS:DTSID="{6EB72628-9C88-4E45-BBB1-0AD4DB1DCEC0}"
+      DTS:From="Package\MPI - Patient Mapping"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 5"
+      DTS:To="Package\MINE- CD4 % Events for Children" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 6]"
+      DTS:CreationName=""
+      DTS:DTSID="{104173E9-76B2-4588-AC37-AF19116FD623}"
+      DTS:From="Package\MPI - Patient Mapping"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 6"
+      DTS:To="Package\MINE-Viral Load Data" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 7]"
+      DTS:CreationName=""
+      DTS:DTSID="{6033C98A-7E49-47FC-8C7C-772BDF684FA2}"
+      DTS:From="Package\MPI - Patient Mapping"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 7"
+      DTS:To="Package\MINE- ARV Events" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 8]"
+      DTS:CreationName=""
+      DTS:DTSID="{60B9A081-5D3F-4B2D-8ADC-916A21F360DA}"
+      DTS:From="Package\Truncate CBS_staging Tables"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 8"
+      DTS:To="Package\Prepare Reporting Facility Table" />
+    <DTS:PrecedenceConstraint
+      DTS:refId="Package.PrecedenceConstraints[Constraint 9]"
+      DTS:CreationName=""
+      DTS:DTSID="{F9FA1D07-4CDC-467B-8EBF-A46A4EEE2472}"
+      DTS:From="Package\MPI - Patient Mapping"
+      DTS:LogicalAnd="True"
+      DTS:ObjectName="Constraint 9"
+      DTS:To="Package\MINE-  Encounters" />
+  </DTS:PrecedenceConstraints>
+  <DTS:DesignTimeProperties><![CDATA[<?xml version="1.0"?>
+<!--This CDATA section contains the layout information of the package. The section includes information such as (x,y) coordinates, width, and height.-->
+<!--If you manually edit this section and make a mistake, you can delete it. -->
+<!--The package will still be able to load normally but the previous layout information will be lost and the designer will automatically re-arrange the elements on the design surface.-->
+<Objects
+  Version="sql11">
+  <!--Each node below will contain properties that do not affect runtime behavior.-->
+  <Package
+    design-time-name="Package">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="32" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="216,42"
+          Id="Package\De-Duplicate Patient Records"
+          TopLeft="607.5,320.5" />
+        <NodeLayout
+          Size="214,42"
+          Id="Package\Facility Clean Up - Defensive"
+          TopLeft="608.75,218.5" />
+        <NodeLayout
+          Size="166,42"
+          Id="Package\MINE- ARV Events"
+          TopLeft="886.75,501.5" />
+        <NodeLayout
+          Size="238,42"
+          Id="Package\MINE- CD4 % Events for Children"
+          TopLeft="327.75,524.5" />
+        <NodeLayout
+          Size="262,42"
+          Id="Package\MINE- CD4 Count Events"
+          TopLeft="5.5,524.5" />
+        <NodeLayout
+          Size="180,42"
+          Id="Package\MINE-Viral Load Data"
+          TopLeft="625.5,524.5" />
+        <NodeLayout
+          Size="184,42"
+          Id="Package\MPI - Patient Mapping"
+          TopLeft="623.75,422.5" />
+        <NodeLayout
+          Size="188,42"
+          Id="Package\Prepare Patient Profiles"
+          TopLeft="621.25,116.5" />
+        <NodeLayout
+          Size="229,42"
+          Id="Package\Prepare Reporting Facility Table"
+          TopLeft="846,69.4999999999998" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint]"
+          TopLeft="846,90.4999999999998">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-36.75,47.0000000000002"
+              Start="0,0"
+              End="-29.25,47.0000000000002">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="-14.375,0" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-14.375,0"
+                    Point2="-18.375,0"
+                    Point3="-18.375,4" />
+                  <mssgle:LineSegment
+                    End="-18.375,43.0000000000002" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-18.375,43.0000000000002"
+                    Point2="-18.375,47.0000000000002"
+                    Point3="-22.375,47.0000000000002" />
+                  <mssgle:LineSegment
+                    End="-29.25,47.0000000000002" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 1]"
+          TopLeft="715.5,158.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,60"
+              Start="0,0"
+              End="0,52.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,52.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 2]"
+          TopLeft="715.5,260.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,60"
+              Start="0,0"
+              End="0,52.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,52.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 3]"
+          TopLeft="715.5,362.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,60"
+              Start="0,0"
+              End="0,52.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,52.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 4]"
+          TopLeft="662.85,464.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-526.35,60.0000000000001"
+              Start="0,0"
+              End="-526.35,52.5000000000001">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,13.928926251433" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,13.928926251433"
+                    Point2="0,17.928926251433"
+                    Point3="-4,17.928926251433" />
+                  <mssgle:LineSegment
+                    End="-522.35,17.928926251433" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-522.35,17.928926251433"
+                    Point2="-526.35,17.928926251433"
+                    Point3="-526.35,21.928926251433" />
+                  <mssgle:LineSegment
+                    End="-526.35,52.5000000000001" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 5]"
+          TopLeft="697.95,464.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-251.45,60.0000000000001"
+              Start="0,0"
+              End="-251.45,52.5000000000001">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,22.8273576378428" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,22.8273576378428"
+                    Point2="0,26.8273576378428"
+                    Point3="-4,26.8273576378428" />
+                  <mssgle:LineSegment
+                    End="-247.45,26.8273576378428" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-247.45,26.8273576378428"
+                    Point2="-251.45,26.8273576378428"
+                    Point3="-251.45,30.8273576378428" />
+                  <mssgle:LineSegment
+                    End="-251.45,52.5000000000001" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 6]"
+          TopLeft="733.05,464.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-17.55,60"
+              Start="0,0"
+              End="-17.55,52.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,22.8273576378427" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,22.8273576378427"
+                    Point2="0,26.8273576378427"
+                    Point3="-4,26.8273576378427" />
+                  <mssgle:LineSegment
+                    End="-13.55,26.8273576378427" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-13.55,26.8273576378427"
+                    Point2="-17.55,26.8273576378427"
+                    Point3="-17.55,30.8273576378427" />
+                  <mssgle:LineSegment
+                    End="-17.55,52.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 7]"
+          TopLeft="768.55,464.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="201.2,37"
+              Start="0,0"
+              End="201.2,29.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,7.0548780487805" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,7.0548780487805"
+                    Point2="0,11.0548780487805"
+                    Point3="4,11.0548780487805" />
+                  <mssgle:LineSegment
+                    End="197.2,11.0548780487805" />
+                  <mssgle:CubicBezierSegment
+                    Point1="197.2,11.0548780487805"
+                    Point2="201.2,11.0548780487805"
+                    Point3="201.2,15.0548780487805" />
+                  <mssgle:LineSegment
+                    End="201.2,29.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="229,42"
+          Id="Package\Truncate CBS_staging Tables"
+          TopLeft="686,0" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 8]"
+          TopLeft="800.5,42">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="160,27.4999999999998"
+              Start="0,0"
+              End="160,19.9999999999998">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,9.74999999999989" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,9.74999999999989"
+                    Point2="0,13.7499999999999"
+                    Point3="4,13.7499999999999" />
+                  <mssgle:LineSegment
+                    End="156,13.7499999999999" />
+                  <mssgle:CubicBezierSegment
+                    Point1="156,13.7499999999999"
+                    Point2="160,13.7499999999999"
+                    Point3="160,17.7499999999999" />
+                  <mssgle:LineSegment
+                    End="160,19.9999999999998" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="167,42"
+          Id="Package\MINE-  Encounters"
+          TopLeft="1088,502" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 9]"
+          TopLeft="774.416666666667,464.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="397.083333333333,37.5"
+              Start="0,0"
+              End="397.083333333333,30">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,5.97340425531913" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,5.97340425531913"
+                    Point2="0,9.97340425531913"
+                    Point3="4,9.97340425531913" />
+                  <mssgle:LineSegment
+                    End="393.083333333333,9.97340425531913" />
+                  <mssgle:CubicBezierSegment
+                    Point1="393.083333333333,9.97340425531913"
+                    Point2="397.083333333333,9.97340425531913"
+                    Point3="397.083333333333,13.9734042553191" />
+                  <mssgle:LineSegment
+                    End="397.083333333333,30" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="168,42"
+          Id="Package\Log EMR at Facility"
+          TopLeft="607,649" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 10]"
+          TopLeft="136.5,566.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="501.166666666667,82.5"
+              Start="0,0"
+              End="501.166666666667,75">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,56.4360465116279" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,56.4360465116279"
+                    Point2="0,60.4360465116279"
+                    Point3="4,60.4360465116279" />
+                  <mssgle:LineSegment
+                    End="497.166666666667,60.4360465116279" />
+                  <mssgle:CubicBezierSegment
+                    Point1="497.166666666667,60.4360465116279"
+                    Point2="501.166666666667,60.4360465116279"
+                    Point3="501.166666666667,64.4360465116279" />
+                  <mssgle:LineSegment
+                    End="501.166666666667,75" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 11]"
+          TopLeft="446.75,566.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="217.583333333333,82.5"
+              Start="0,0"
+              End="217.583333333333,75">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,45.0330188679245" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,45.0330188679245"
+                    Point2="0,49.0330188679245"
+                    Point3="4,49.0330188679245" />
+                  <mssgle:LineSegment
+                    End="213.583333333333,49.0330188679245" />
+                  <mssgle:CubicBezierSegment
+                    Point1="213.583333333333,49.0330188679245"
+                    Point2="217.583333333333,49.0330188679245"
+                    Point3="217.583333333333,53.0330188679245" />
+                  <mssgle:LineSegment
+                    End="217.583333333333,75" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 12]"
+          TopLeft="715.5,566.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-24.5,82.5"
+              Start="0,0"
+              End="-24.5,75">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,37.25" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,37.25"
+                    Point2="0,41.25"
+                    Point3="-4,41.25" />
+                  <mssgle:LineSegment
+                    End="-20.5,41.25" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-20.5,41.25"
+                    Point2="-24.5,41.25"
+                    Point3="-24.5,45.25" />
+                  <mssgle:LineSegment
+                    End="-24.5,75" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 13]"
+          TopLeft="969.75,543.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-252.083333333333,105.5"
+              Start="0,0"
+              End="-252.083333333333,98">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,58.7028301886792" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,58.7028301886792"
+                    Point2="0,62.7028301886792"
+                    Point3="-4,62.7028301886792" />
+                  <mssgle:LineSegment
+                    End="-248.083333333333,62.7028301886792" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-248.083333333333,62.7028301886792"
+                    Point2="-252.083333333333,62.7028301886792"
+                    Point3="-252.083333333333,66.7028301886792" />
+                  <mssgle:LineSegment
+                    End="-252.083333333333,98" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 14]"
+          TopLeft="1171.5,544">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-427.166666666667,105"
+              Start="0,0"
+              End="-427.166666666667,97.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,72.9186046511628" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,72.9186046511628"
+                    Point2="0,76.9186046511628"
+                    Point3="-4,76.9186046511628" />
+                  <mssgle:LineSegment
+                    End="-423.166666666667,76.9186046511628" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-423.166666666667,76.9186046511628"
+                    Point2="-427.166666666667,76.9186046511628"
+                    Point3="-427.166666666667,80.9186046511628" />
+                  <mssgle:LineSegment
+                    End="-427.166666666667,97.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <NodeLayout
+          Size="160,42"
+          Id="Package\Log Refresh Date"
+          TopLeft="608.5,744" />
+        <EdgeLayout
+          Id="Package.PrecedenceConstraints[Constraint 15]"
+          TopLeft="694.75,691">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,53"
+              Start="0,0"
+              End="0,45.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,45.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </Package>
+</Objects>]]></DTS:DesignTimeProperties>
+</DTS:Executable>
